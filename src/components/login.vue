@@ -25,27 +25,21 @@ export default {
   },
   methods: {
     //登录请求
-    handleLogin() {
-      this.$http
-        .post("login", this.formdata)
-        .then(res => {
-          const {
-            data: {
-              data,
-              meta: { msg, status }
-            }
-          } = res;
-          if (status === 200) {
-            this.$router.push({
-                name:'home'
-            })
-          } else {
-            this.$message.error(msg);
-          }
-        })
-        .catch(err => {
-          console.log(err);
+    async handleLogin() {
+      const res = await this.$http.post("login", this.formdata);
+      const {
+        data: {
+          data,
+          meta: { msg, status }
+        }
+      } = res;
+      if (status === 200) {
+        this.$router.push({
+          name: "home"
         });
+      } else {
+        this.$message.error(msg);
+      }
     }
   }
 };
