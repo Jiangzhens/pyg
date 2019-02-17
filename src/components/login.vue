@@ -34,6 +34,9 @@ export default {
         }
       } = res;
       if (status === 200) {
+        //保存正确的token
+        localStorage.setItem('token',data.token)
+         
         this.$router.push({
           name: "home"
         });
