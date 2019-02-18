@@ -33,7 +33,6 @@
       <el-table-column label="创建日期" width="140">
         <template slot-scope="scope">{{scope.row.create_time | fmtdate}}</template>
       </el-table-column>
-
       <el-table-column label="用户状态" width="140">
         <template slot-scope="scope">
           <el-switch v-model="scope.row.mg_state" active-color="#13ce66" inactive-color="#ff4949"></el-switch>
@@ -41,7 +40,14 @@
       </el-table-column>
       <el-table-column label="操作" width="200">
         <template slot-scope="scope">
-          <el-button type="primary" icon="el-icon-edit" circle size="mini" plain></el-button>
+          <el-button
+            v-model="scope.row.mg_state"
+            type="primary"
+            icon="el-icon-edit"
+            circle
+            size="mini"
+            plain
+          ></el-button>
           <el-button type="danger" icon="el-icon-delete" circle size="mini" plain></el-button>
           <el-button type="success" icon="el-icon-check" circle size="mini" plain></el-button>
         </template>
@@ -76,7 +82,7 @@
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button @click="dialogFormVisibleAdd = false">取 消</el-button>
-        <el-button type="primary" @click="dialogFormVisibleAdd = false">确 定</el-button>
+        <el-button type="primary" @click="addUser()">确 定</el-button>
       </div>
     </el-dialog>
   </el-card>
@@ -102,15 +108,27 @@ export default {
       }
     };
   },
-  // mounted(){}
   // 获取首屏数据的方法调用
   created() {
     this.getTableData();
   },
   methods: {
+    // 添加-确定按钮
+    async addUser() {
+      const res = await this.$http.post("users", this.formdata);
+      const {
+        meta: { msg, status }
+      } = res.data;
+      if (status === 201) {
+        this.dialogFormVisibleAdd = false;
+
+        this.getTableData();
+      }
+    },
     // 添加- 打开对话框
     showDiaAddUser() {
       this.dialogFormVisibleAdd = true;
+      this.formdata = {};
     },
     getAllUsers() {
       this.getTableData();
