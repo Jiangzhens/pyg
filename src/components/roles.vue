@@ -6,21 +6,25 @@
       <el-table-column type="expand" width="80">
         <template slot-scope="scope">
           <el-row class="level1" v-for="(item1,i) in scope.row.children" :key="item1.id">
-            
             <el-col :span="4">
-              <el-tag closable>{{item1.authName}}</el-tag>
+              <el-tag @close="deleRights(scope.row,item1)" closable>{{item1.authName}}</el-tag>
               <i class="el-icon-arrow-right"></i>
             </el-col>
             <el-col :span="20">
               <el-row class="level2" v-for="(item2,i) in item1.children" :key="item2.id">
                 <el-col :span="4">
-                  <el-tag closable type="success">{{item2.authName}}</el-tag>
-                  <i class="el-icon-arrow-right"></i> 
+                  <el-tag
+                    closable
+                    @close="deleRights(scope.row,item2)"
+                    type="success"
+                  >{{item2.authName}}</el-tag>
+                  <i class="el-icon-arrow-right"></i>
                 </el-col>
                 <el-col :span="20">
                   <el-tag
                     closable
                     type="info"
+                    @close="deleRights(scope.row,item3)"
                     v-for="(item3,i) in item2.children"
                     :key="item3.id"
                   >{{item3.authName}}</el-tag>
@@ -28,7 +32,7 @@
               </el-row>
             </el-col>
           </el-row>
-          <el-row v-if='scope.row.children.length === 0'>
+          <el-row v-if="scope.row.children.length === 0">
             <el-col>
               <span>未分配权限</span>
             </el-col>
@@ -40,14 +44,7 @@
       <el-table-column prop="roleDesc" label="角色描述" width="300"></el-table-column>
       <el-table-column label="操作" width="200">
         <template slot-scope="scope">
-          <el-button
-            v-model="scope.row.mg_state"
-            type="primary"
-            icon="el-icon-edit"
-            circle
-            size="mini"
-            plain
-          ></el-button>
+          <el-button type="primary" icon="el-icon-edit" circle size="mini" plain></el-button>
           <el-button type="danger" icon="el-icon-delete" circle size="mini" plain></el-button>
           <el-button
             @click="showDiaSetRights(scope.row)"
@@ -60,6 +57,22 @@
         </template>
       </el-table-column>
     </el-table>
+    <!-- 对话框 -->
+    <el-dialog title="分配权限" :visible.sync="dialogFormVisible">
+      <el-tree
+        ref="treeDom"
+        :data="treelist"
+        show-checkbox
+        node-key="id"
+        default-expand-all
+        :default-checked-keys="arrCheck"
+        :props="defaultProps"
+      ></el-tree>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="dialogFormVisible = false">取 消</el-button>
+        <el-button type="primary" @click="setRights()">确 定</el-button>
+      </div>
+    </el-dialog>
   </el-card>
 </template>
 
@@ -67,14 +80,76 @@
 export default {
   data() {
     return {
-      roles: []
+      roles: [],
+      dialogFormVisible: false,
+      // 属性结构的数据
+      treelist: [],
+      arrCheck: [],
+      // arrExpand: [],
+      defaultProps: {
+        label: "authName",
+        children: "children"
+      },
+      currRoleId: -1
     };
   },
   created() {
     this.getRoles();
   },
   methods: {
-    showDiaSetRights() {},
+    async setRights() {
+      const arr1 = this.$refs.treeDom.getCheckedKeys();
+      const arr2 = this.$refs.treeDom.getHalfCheckedKeys();
+      const arr = [...arr1, ...arr2];
+      const res = await this.$http.post(`roles/${this.currRoleId}/rights`, {
+        rids: arr.join(",")
+      });
+
+      const {
+        meta: { msg, status },
+        data
+      } = res.data;
+      if (status === 200) {
+        this.dialogFormVisible = false;
+        this.getRoles();
+      }
+    },
+    async showDiaSetRights(role) {
+      this.currRoleId = role.id;
+      // 获取数据
+      const res = await this.$http.get(`rights/tree`);
+      const {
+        meta: { msg, status },
+        data
+      } = res.data;
+      if (status === 200) {
+        this.treelist = data;
+        const temp2 = [];
+        role.children.forEach(item1 => {
+          item1.children.forEach(item2 => {
+            item2.children.forEach(item3 => {
+              temp2.push(item3.id);
+            });
+          });
+        });
+        this.arrCheck = temp2;
+      }
+      this.dialogFormVisible = true;
+    },
+
+    async deleRights(role, rights) {
+      const res = await this.$http.delete(
+        `roles/${role.id}/rights/${rights.id}`
+      );
+      const {
+        meta: { msg, status },
+        data
+      } = res.data;
+      if (status === 200) {
+        this.$message.success(msg);
+        role.children = data;
+      }
+    },
     async getRoles() {
       const res = await this.$http.get("roles");
       const {
